@@ -209,6 +209,11 @@ Java_project_pamela_slambench_jni_KFusion_kfusioncppprocess (JNIEnv * env)
 
   if (reader->readNextDepthFrame (raw_rgb, inputDepth))
 
+
+
+
+// preprocessing
+ /*
     {
 
 
@@ -223,36 +228,36 @@ Java_project_pamela_slambench_jni_KFusion_kfusioncppprocess (JNIEnv * env)
       LOGI("frame %d", frame);
       LOGI ("Before Preprocessing\n");
 
-      //kfusion->preprocessing (inputDepth, inputSize, frame);
+      kfusion->preprocessing (inputDepth, inputSize, frame);
 
       timings[2] = tock ();
 
       LOGI ("Before Tracking\n");
       bool tracked = true; //kfusion->tracking (camera, config.icp_threshold,
 					//config.tracking_rate, frame);
- 
 
 
       timings[3] = tock ();
       LOGI ("Before Integration\n");
-      bool integrated = kfusion->integration (camera, config.integration_rate,
-					      config.mu, frame);
+      bool integrated = true;
+      //kfusion->integration (camera, config.integration_rate,
+	//				      config.mu, frame);
 
 
       timings[4] = tock ();
 
       LOGI("Before Raycast");
-      bool raycast = kfusion->raycasting (camera, config.mu, frame);
+      bool raycast = true;//kfusion->raycasting (camera, config.mu, frame);
 
 
       timings[5] = tock ();
 
-      kfusion->renderDepth (depthRender, computationSize);
+      //kfusion->renderDepth (depthRender, computationSize);
 
-      kfusion->renderTrack (trackRender, computationSize);
+      //kfusion->renderTrack (trackRender, computationSize);
 
-      kfusion->renderVolume (volumeRender, computationSize, frame,
-			     config.rendering_rate, camera, 0.75 * config.mu);
+      //kfusion->renderVolume (volumeRender, computationSize, frame,
+			     //config.rendering_rate, camera, 0.75 * config.mu);
 
 
       timings[6] = tock ();
@@ -285,12 +290,12 @@ Java_project_pamela_slambench_jni_KFusion_kfusioncppprocess (JNIEnv * env)
 
       return  (env)->NewStringUTF(o.str().c_str());
 
-    }
+    }*/
 
-/*
+     // trakcing
+
+     /*
       {
-
-
          Matrix4 pose = kfusion->getPose ();
 
          float xt = pose.data[0].w - init_pose.x;
@@ -302,7 +307,7 @@ Java_project_pamela_slambench_jni_KFusion_kfusioncppprocess (JNIEnv * env)
          LOGI("frame %d", frame);
          LOGI ("Before Preprocessing\n");
 
-         kfusion->preprocessing (inputDepth, inputSize, frame);
+         //kfusion->preprocessing (inputDepth, inputSize, frame);
 
          timings[2] = tock ();
 
@@ -369,6 +374,186 @@ Java_project_pamela_slambench_jni_KFusion_kfusioncppprocess (JNIEnv * env)
        }
 
 */
+
+
+
+
+     // integration
+     /*
+      {
+
+
+         Matrix4 pose = kfusion->getPose ();
+
+         float xt = pose.data[0].w - init_pose.x;
+         float yt = pose.data[1].w - init_pose.y;
+         float zt = pose.data[2].w - init_pose.z;
+
+         timings[1] = tock ();
+
+         LOGI("frame %d", frame);
+         LOGI ("Before Preprocessing\n");
+
+         //kfusion->preprocessing (inputDepth, inputSize, frame);
+
+         timings[2] = tock ();
+
+         LOGI ("Before Tracking\n");
+         bool tracked = true; //kfusion->tracking (camera, config.icp_threshold,
+   					//config.tracking_rate, frame);
+
+
+
+         timings[3] = tock ();
+         LOGI ("Before Integration\n");
+         bool integrated = true;
+         kfusion->integration (camera, config.integration_rate,
+   					      config.mu, frame);
+
+
+         timings[4] = tock ();
+
+         LOGI("Before Raycast");
+         bool raycast = true;
+         //kfusion->raycasting (camera, config.mu, frame);
+
+
+         timings[5] = tock ();
+
+         //kfusion->renderDepth (depthRender, computationSize);
+
+         //kfusion->renderTrack (trackRender, computationSize);
+
+         //kfusion->renderVolume (volumeRender, computationSize, frame,
+   		//	     config.rendering_rate, camera, 0.75 * config.mu);
+
+
+         timings[6] = tock ();
+
+
+         __android_log_print (ANDROID_LOG_INFO, "kfusion", "%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\t%d", frame, timings[1] - timings[0], timings[2] - timings[1],	//  preprocessing
+   			   timings[3] - timings[2],	//  tracking
+   			   timings[4] - timings[3],	//  integration
+   			   timings[5] - timings[4],	//  raycasting
+   			   timings[6] - timings[5],	//  rendering
+   			   timings[5] - timings[1],	//  computation
+   			   timings[6] - timings[0],	//  total
+   			   xt, yt, zt,	//  X,Y,Z
+   			   tracked, integrated);
+
+         o <<  frame << "\t"
+           << timings[1] - timings[0] << "\t"          << timings[2] - timings[1] << "\t"          <<	//  preprocessing
+   			   timings[3] - timings[2] << "\t"          <<	//  tracking
+   			   timings[4] - timings[3] << "\t"          <<	//  integration
+   			   timings[5] - timings[4] << "\t"          <<	//  raycasting
+   			   timings[6] - timings[5] << "\t"          <<	//  rendering
+   			   timings[5] - timings[1] << "\t"          <<	//  computation
+   			   timings[6] - timings[0] << "\t"          <<	//  total
+   			   xt << "\t"          << yt << "\t"          << zt << "\t"          <<	//  X << "\t"          <<Y << "\t"          <<Z
+   			   tracked << "\t"          << integrated;
+
+         frame++;
+
+         timings[0] = tock ();
+
+         return  (env)->NewStringUTF(o.str().c_str());
+
+       }
+
+
+
+*/
+
+
+
+
+//raycasting
+
+      {
+
+
+         Matrix4 pose = kfusion->getPose ();
+
+         float xt = pose.data[0].w - init_pose.x;
+         float yt = pose.data[1].w - init_pose.y;
+         float zt = pose.data[2].w - init_pose.z;
+
+         timings[1] = tock ();
+
+         LOGI("frame %d", frame);
+         LOGI ("Before Preprocessing\n");
+
+         //kfusion->preprocessing (inputDepth, inputSize, frame);
+
+         timings[2] = tock ();
+
+         LOGI ("Before Tracking\n");
+         bool tracked = true; //kfusion->tracking (camera, config.icp_threshold,
+   					//config.tracking_rate, frame);
+
+
+
+         timings[3] = tock ();
+         LOGI ("Before Integration\n");
+         bool integrated = true;
+         //kfusion->integration (camera, config.integration_rate,
+   		//			      config.mu, frame);
+
+
+         timings[4] = tock ();
+
+         LOGI("Before Raycast");
+         bool raycast = kfusion->raycasting (camera, config.mu, frame);
+
+
+         timings[5] = tock ();
+
+         kfusion->renderDepth (depthRender, computationSize);
+
+         kfusion->renderTrack (trackRender, computationSize);
+
+         kfusion->renderVolume (volumeRender, computationSize, frame,
+   			     config.rendering_rate, camera, 0.75 * config.mu);
+
+
+         timings[6] = tock ();
+
+
+         __android_log_print (ANDROID_LOG_INFO, "kfusion", "%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\t%d", frame, timings[1] - timings[0], timings[2] - timings[1],	//  preprocessing
+   			   timings[3] - timings[2],	//  tracking
+   			   timings[4] - timings[3],	//  integration
+   			   timings[5] - timings[4],	//  raycasting
+   			   timings[6] - timings[5],	//  rendering
+   			   timings[5] - timings[1],	//  computation
+   			   timings[6] - timings[0],	//  total
+   			   xt, yt, zt,	//  X,Y,Z
+   			   tracked, integrated);
+
+         o <<  frame << "\t"
+           << timings[1] - timings[0] << "\t"          << timings[2] - timings[1] << "\t"          <<	//  preprocessing
+   			   timings[3] - timings[2] << "\t"          <<	//  tracking
+   			   timings[4] - timings[3] << "\t"          <<	//  integration
+   			   timings[5] - timings[4] << "\t"          <<	//  raycasting
+   			   timings[6] - timings[5] << "\t"          <<	//  rendering
+   			   timings[5] - timings[1] << "\t"          <<	//  computation
+   			   timings[6] - timings[0] << "\t"          <<	//  total
+   			   xt << "\t"          << yt << "\t"          << zt << "\t"          <<	//  X << "\t"          <<Y << "\t"          <<Z
+   			   tracked << "\t"          << integrated;
+
+         frame++;
+
+         timings[0] = tock ();
+
+         return  (env)->NewStringUTF(o.str().c_str());
+
+       }
+
+
+
+
+
+
+
 
   else
     {
@@ -498,12 +683,19 @@ Java_project_pamela_slambench_jni_KFusion_kfusioncppinit (JNIEnv * env,
 
    LOGI("In  Java_project_pamela_slambench_jni_KFusion_kfusioncppinit\n");
 
-  //kfusion->sender_bind(8800, "10.0.1.34", PREPROCESSING2TRACKING);     // added by Yun
+  //kfusion->sender_bind(8800, "10.0.1.23", PREPROCESSING2TRACKING);     // added by Yun
   //kfusion->receiver_bind(8803, RAYCASTING2PREPROCESSING);              //added by Yun
 
+  //kfusion->receiver_bind(8800, PREPROCESSING2TRACKING);              //added by Yun
+  //kfusion->sender_bind(8801, "10.0.1.34", TRACKING2INTEGRATION);     // added by Yun
 
-  kfusion->receiver_bind(8800, PREPROCESSING2TRACKING);              //added by Yun
-  kfusion->sender_bind(8803, "10.0.1.28", RAYCASTING2PREPROCESSING);     // added by Yun
+
+  //kfusion->receiver_bind(8801, TRACKING2INTEGRATION);              //added by Yun
+  //kfusion->sender_bind(8802, "10.0.1.28", INTEGRATION2RAYCASTING);     // added by Yun
+
+
+  kfusion->receiver_bind(8802, INTEGRATION2RAYCASTING);              //added by Yun
+  kfusion->sender_bind(8803, "10.0.1.35", RAYCASTING2PREPROCESSING);     // added by Yun
 
   LOGI ("bindedededededed\n");
 

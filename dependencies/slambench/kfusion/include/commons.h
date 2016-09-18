@@ -146,6 +146,18 @@ inline uchar4 gs2rgb(double h) {
 	return rgb;
 }
 
+
+struct VolumeChange {
+    int count;
+    uint3 * index;
+    float2 * value;
+};
+
+
+
+
+
+
 struct Volume {
 	uint3 size;
 	float3 dim;

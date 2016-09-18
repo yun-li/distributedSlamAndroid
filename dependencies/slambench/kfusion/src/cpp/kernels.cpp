@@ -91,7 +91,7 @@ using namespace std;
 
 
 
-
+VolumeChange vol_change ;
 
 // input once
 float * gaussian;
@@ -1292,11 +1292,13 @@ bool Kfusion::preprocessing(const ushort * inputDepth, const uint2 inputSize, ui
 
 
 
-    //send_data_bytes((char *)ScaledDepth[0], sizeof(float) * computationSize.x * computationSize.y, "ScaledDepth0" , socketHandle_preprocessing_tracking);
-    //send_data_bytes((char *)floatDepth, sizeof(float) * computationSize.x * computationSize.y, "floatDepth" , socketHandle_preprocessing_tracking);
-    //send_data_bytes((char *)vertex, sizeof(float3) * computationSize.x * computationSize.y, "vertex", socketHandle_preprocessing_tracking);
-    //send_data_bytes((char *)normal, sizeof(float3) * computationSize.x * computationSize.y, "normal", socketHandle_preprocessing_tracking);
-    //send_data_bytes((char *)&raycastPose, sizeof(Matrix4), "raycastPose", socketHandle_preprocessing_tracking );
+
+
+    send_data_bytes((char *)ScaledDepth[0], sizeof(float) * computationSize.x * computationSize.y, "ScaledDepth0" , socketHandle_preprocessing_tracking);
+    send_data_bytes((char *)floatDepth, sizeof(float) * computationSize.x * computationSize.y, "floatDepth" , socketHandle_preprocessing_tracking);
+    send_data_bytes((char *)vertex, sizeof(float3) * computationSize.x * computationSize.y, "vertex", socketHandle_preprocessing_tracking);
+    send_data_bytes((char *)normal, sizeof(float3) * computationSize.x * computationSize.y, "normal", socketHandle_preprocessing_tracking);
+    send_data_bytes((char *)&raycastPose, sizeof(Matrix4), "raycastPose", socketHandle_preprocessing_tracking );
 
 
 	return true;
@@ -1305,14 +1307,14 @@ bool Kfusion::preprocessing(const ushort * inputDepth, const uint2 inputSize, ui
 bool Kfusion::tracking(float4 k, float icp_threshold, uint tracking_rate,
 		uint frame) {
 
-	if (frame % tracking_rate != 0)
-		return false;
+	//if (frame % tracking_rate != 0)
+	//	return false;
 
-    //receive_data_bytes((char *)ScaledDepth[0], sizeof(float) * computationSize.x * computationSize.y, "ScaledDepth0", socketConnection_preprocessing_tracking);
-    //receive_data_bytes((char *)floatDepth, sizeof(float) * computationSize.x * computationSize.y, "floatDepth", socketConnection_preprocessing_tracking);
-    //receive_data_bytes((char *)vertex, sizeof(float3) * computationSize.x * computationSize.y, "vertex", socketConnection_preprocessing_tracking);
-    //receive_data_bytes((char *)normal, sizeof(float3) * computationSize.x * computationSize.y, "normal", socketConnection_preprocessing_tracking);
-    //receive_data_bytes((char *)&raycastPose, sizeof(Matrix4), "raycastPose", socketConnection_preprocessing_tracking );
+    receive_data_bytes((char *)ScaledDepth[0], sizeof(float) * computationSize.x * computationSize.y, "ScaledDepth0", socketConnection_preprocessing_tracking);
+    receive_data_bytes((char *)floatDepth, sizeof(float) * computationSize.x * computationSize.y, "floatDepth", socketConnection_preprocessing_tracking);
+    receive_data_bytes((char *)vertex, sizeof(float3) * computationSize.x * computationSize.y, "vertex", socketConnection_preprocessing_tracking);
+    receive_data_bytes((char *)normal, sizeof(float3) * computationSize.x * computationSize.y, "normal", socketConnection_preprocessing_tracking);
+    receive_data_bytes((char *)&raycastPose, sizeof(Matrix4), "raycastPose", socketConnection_preprocessing_tracking );
 
 
 
@@ -1379,6 +1381,14 @@ bool Kfusion::tracking(float4 k, float icp_threshold, uint tracking_rate,
 
 bool Kfusion::raycasting(float4 k, float mu, uint frame) {
 
+    receive_data_bytes((char *)vertex, sizeof(float3) * computationSize.x * computationSize.y, "vertex", socketConnection_integration_raycasting);
+    receive_data_bytes((char *)normal, sizeof(float3) * computationSize.x * computationSize.y, "normal", socketConnection_integration_raycasting);
+    receive_data_bytes((char *)volume.data, sizeof(short2) * volume.size.x * volume.size.y * volume.size.z, "volume size", socketConnection_integration_raycasting);
+    receive_data_bytes((char *)&pose, sizeof(pose), "pose_raycast", socketConnection_integration_raycasting);
+    receive_data_bytes((char *) trackingResult, sizeof(TrackData) * computationSize.x * computationSize.y, "tracingResult", socketConnection_integration_raycasting);
+    receive_data_bytes((char *)&raycastPose, sizeof(Matrix4), "raycastPose", socketConnection_integration_raycasting );
+    receive_vol_change(vol_change, socketConnection_integration_raycasting);
+
 	bool doRaycast = false;
 
 	if (frame > 2) {
@@ -1424,9 +1434,57 @@ bool Kfusion::integration(float4 k, uint integration_rate, float mu,
 		doIntegrate = false;
 	}
 
+    send_data_bytes((char*)vertex,
+            sizeof(float3) * computationSize.x * computationSize.y,
+            "vertex"  , socketHandle_integration_raycasting);
+    send_data_bytes((char*)normal,
+            sizeof(float3) * computationSize.x * computationSize.y,
+            "normal"  , socketHandle_integration_raycasting);
+    send_data_bytes((char *)volume.data, sizeof(short2) * volumeResolution.x * volumeResolution.y * volumeResolution.z, "volume sent", socketHandle_integration_raycasting);
+    send_data_bytes((char *) &pose, sizeof(pose), "post to raycasting", socketHandle_integration_raycasting);
+    send_data_bytes((char *) trackingResult, sizeof(TrackData) * computationSize.x * computationSize.y, "tracingResult", socketHandle_integration_raycasting);
+    send_data_bytes((char *)&raycastPose, sizeof(Matrix4), "raycastPose", socketHandle_integration_raycasting);
+
+    send_vol_change(vol_change, socketHandle_integration_raycasting);
+
+
 	return doIntegrate;
 
 }
+
+
+
+
+
+
+void Kfusion::receive_vol_change(VolumeChange vol_change, int socketConnection){
+    int count;
+    recv(socketConnection, (char*)&count, sizeof(int), 0);
+    if(count > 0){
+        vol_change.count = count;
+        receive_data_bytes((char *)vol_change.index, count * sizeof(uint3), "vol_change_index", socketConnection);
+        receive_data_bytes((char *)vol_change.value, count * sizeof(float2), "vol_change_value", socketConnection);
+    }
+}
+
+void Kfusion::send_vol_change(VolumeChange vol_change, int socketHandle){
+    send(socketHandle, (char *) &(vol_change.count), sizeof(int), 0);
+    send_data_bytes((char *)vol_change.index, sizeof(uint3) * vol_change.count, "vol_change_index", socketHandle);
+    send_data_bytes((char *)vol_change.value, sizeof(float2) * vol_change.count, "vol_change_value", socketHandle);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void Kfusion::dumpVolume(std::string filename) {
 

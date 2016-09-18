@@ -44,7 +44,8 @@ void receiver_bind(int port, int socketConnection);
 void send_data_bytes(char * a, int length, std::string str, int socketHandle);
 void receive_data_bytes(char *a, int length, std::string str, int socketConnection);
 
-
+void receive_vol_change(VolumeChange vol_change, int socketConnection);
+void send_vol_change(VolumeChange vol_change, int socketHandle);
 
 
 
@@ -229,7 +230,8 @@ public:
     void send_data(float * a, int length);
     void receive_data_tracking(int length);
 */
-
+    void receive_vol_change(VolumeChange vol_change, int socketConnection);
+    void send_vol_change(VolumeChange vol_change, int socketHandle);
 
 
     void send_data(float * a, int length, std::string str);
